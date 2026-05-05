@@ -50,3 +50,4 @@ python flappy_bird.py
 ## Vercel Note
 
 - Vercel deploys the browser game from `index.html` as a static site.
+- Legacy Python fallback entrypoints were removed so production traffic always serves the browser game.
