@@ -7,7 +7,7 @@ This project now includes:
 ## Requirements
 
 - Python 3.10+ recommended
-- `pygame` (installed from `requirements.txt`)
+- `pygame` (installed from `requirements-desktop.txt`)
 
 ## Setup
 
@@ -15,7 +15,7 @@ This project now includes:
 2. Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-desktop.txt
 ```
 
 ## Run In Browser (Recommended)
@@ -50,4 +50,4 @@ python flappy_bird.py
 ## Vercel Note
 
 - Vercel deploys the browser game from `index.html` as a static site.
-- Legacy Python fallback entrypoints were removed so production traffic always serves the browser game.
+- Desktop-only Python files are kept separate from Vercel's build inputs to avoid `pygame` build errors in cloud deploys.

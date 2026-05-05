@@ -38,7 +38,7 @@
   <body>
     <div class="game-shell">
       <canvas id="game" width="400" height="600" aria-label="Flappy Bird game"></canvas>
-      <div class="hint">Press SPACE to start, jump, and restart</div>
+      <div class="hint">Press SPACE or tap/click to start, jump, and restart</div>
     </div>
 
     <script>
@@ -274,10 +274,15 @@
       const game = new Game();
 
       window.addEventListener("keydown", (event) => {
-        if (event.code === "Space") {
+        if (event.code === "Space" || event.code === "ArrowUp") {
           event.preventDefault();
           game.onSpace();
         }
+      });
+
+      canvas.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        game.onSpace();
       });
 
       let accumulator = 0;
