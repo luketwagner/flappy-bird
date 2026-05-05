@@ -38,4 +38,5 @@ python flappy_bird.py
 ## Vercel Note
 
 - This repository now includes `api/index.py` as a minimal Python entrypoint so Vercel can import/deploy it.
+- It also includes `main.py` and `vercel.json` to make entrypoint detection explicit.
 - The actual game is still a desktop Pygame app and should be played locally with `python flappy_bird.py`.
