@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flappy Bird (Browser)</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Arial, sans-serif;
+        background: #1f2937;
+      }
+
+      .game-shell {
+        text-align: center;
+      }
+
+      canvas {
+        border: 2px solid #111827;
+        background: #87ceeb;
+        display: block;
+      }
+
+      .hint {
+        color: #e5e7eb;
+        margin-top: 10px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="game-shell">
+      <canvas id="game" width="400" height="600" aria-label="Flappy Bird game"></canvas>
+      <div class="hint">Press SPACE to start, jump, and restart</div>
+    </div>
+
+    <script>
+      const WIDTH = 400;
+      const HEIGHT = 600;
+      const FPS = 60;
+      const FRAME_TIME = 1000 / FPS;
+      const GROUND_HEIGHT = 80;
+
+      const GRAVITY = 0.4;
+      const JUMP_VELOCITY = -8.5;
+      const PIPE_WIDTH = 70;
+      const PIPE_GAP = 170;
+      const PIPE_SPEED = 3;
+      const PIPE_SPAWN_MS = 1400;
+
+      const STATE_START = "start";
+      const STATE_PLAYING = "playing";
+      const STATE_GAME_OVER = "game_over";
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+
+      class Bird {
+        constructor(x, y, radius = 16) {
+          this.x = x;
+          this.y = y;
+          this.radius = radius;
+          this.vy = 0;
+        }
+
+        jump() {
+          this.vy = JUMP_VELOCITY;
+        }
+
+        update() {
+          this.vy += GRAVITY;
+          this.y += this.vy;
+        }
+
+        draw(context) {
+          const cx = Math.round(this.x);
+          const cy = Math.round(this.y);
+
+          context.fillStyle = "#ffd700";
+          context.beginPath();
+          context.arc(cx, cy, this.radius, 0, Math.PI * 2);
+          context.fill();
+
+          const eyeX = cx + Math.floor(this.radius / 3);
+          const eyeY = cy - Math.floor(this.radius / 3);
+          context.fillStyle = "#ffffff";
+          context.beginPath();
+          context.arc(eyeX, eyeY, 4, 0, Math.PI * 2);
+          context.fill();
+
+          context.fillStyle = "#000000";
+          context.beginPath();
+          context.arc(eyeX + 1, eyeY, 2, 0, Math.PI * 2);
+          context.fill();
+
+          context.fillStyle = "#ff8c00";
+          context.beginPath();
+          context.moveTo(cx + this.radius, cy - 2);
+          context.lineTo(cx + this.radius + 12, cy + 2);
+          context.lineTo(cx + this.radius, cy + 6);
+          context.closePath();
+          context.fill();
+        }
+
+        rect() {
+          return {
+            x: this.x - this.radius,
+            y: this.y - this.radius,
+            w: this.radius * 2,
+            h: this.radius * 2,
+          };
+        }
+      }
+
+      class Pipe {
+        constructor(x) {
+          this.x = x;
+          this.width = PIPE_WIDTH;
+          this.gap = PIPE_GAP;
+          this.passed = false;
+
+          const minCenter = 120;
+          const maxCenter = HEIGHT - GROUND_HEIGHT - 120;
+          this.gapCenter = Math.floor(Math.random() * (maxCenter - minCenter + 1)) + minCenter;
+        }
+
+        get topHeight() {
+          return this.gapCenter - this.gap / 2;
+        }
+
+        get bottomY() {
+          return this.gapCenter + this.gap / 2;
+        }
+
+        update() {
+          this.x -= PIPE_SPEED;
+        }
+
+        draw(context) {
+          context.fillStyle = "#228b22";
+          context.fillRect(this.x, 0, this.width, this.topHeight);
+          context.fillRect(this.x, this.bottomY, this.width, HEIGHT - GROUND_HEIGHT - this.bottomY);
+        }
+
+        isOffscreen() {
+          return this.x + this.width < 0;
+        }
+
+        collidesWith(birdRect) {
+          const topRect = { x: this.x, y: 0, w: this.width, h: this.topHeight };
+          const bottomRect = {
+            x: this.x,
+            y: this.bottomY,
+            w: this.width,
+            h: HEIGHT - GROUND_HEIGHT - this.bottomY,
+          };
+          return rectsOverlap(birdRect, topRect) || rectsOverlap(birdRect, bottomRect);
+        }
+      }
+
+      function rectsOverlap(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      }
+
+      class Game {
+        constructor() {
+          this.state = STATE_START;
+          this.reset();
+        }
+
+        reset() {
+          this.bird = new Bird(110, HEIGHT / 2);
+          this.pipes = [];
+          this.score = 0;
+          this.spawnTimer = 0;
+        }
+
+        onSpace() {
+          if (this.state === STATE_START) {
+            this.state = STATE_PLAYING;
+            this.bird.jump();
+            return;
+          }
+          if (this.state === STATE_PLAYING) {
+            this.bird.jump();
+            return;
+          }
+          if (this.state === STATE_GAME_OVER) {
+            this.reset();
+            this.state = STATE_PLAYING;
+            this.bird.jump();
+          }
+        }
+
+        update(dtMs) {
+          if (this.state !== STATE_PLAYING) {
+            return;
+          }
+
+          this.bird.update();
+          this.spawnTimer += dtMs;
+
+          if (this.spawnTimer >= PIPE_SPAWN_MS) {
+            this.spawnTimer = 0;
+            this.pipes.push(new Pipe(WIDTH));
+          }
+
+          const birdRect = this.bird.rect();
+          for (const pipe of this.pipes) {
+            pipe.update();
+
+            if (!pipe.passed && pipe.x + pipe.width < this.bird.x) {
+              pipe.passed = true;
+              this.score += 1;
+            }
+
+            if (pipe.collidesWith(birdRect)) {
+              this.state = STATE_GAME_OVER;
+            }
+          }
+
+          this.pipes = this.pipes.filter((pipe) => !pipe.isOffscreen());
+
+          const groundTop = HEIGHT - GROUND_HEIGHT;
+          if (this.bird.y + this.bird.radius >= groundTop) {
+            this.state = STATE_GAME_OVER;
+          }
+          if (this.bird.y - this.bird.radius <= 0) {
+            this.state = STATE_GAME_OVER;
+          }
+        }
+
+        draw(context) {
+          context.fillStyle = "#87ceeb";
+          context.fillRect(0, 0, WIDTH, HEIGHT);
+
+          for (const pipe of this.pipes) {
+            pipe.draw(context);
+          }
+
+          this.bird.draw(context);
+
+          context.fillStyle = "#deb887";
+          context.fillRect(0, HEIGHT - GROUND_HEIGHT, WIDTH, GROUND_HEIGHT);
+
+          context.fillStyle = "#1e1e1e";
+          context.font = "28px Arial";
+          context.fillText(`Score: ${this.score}`, 12, 32);
+
+          if (this.state === STATE_START) {
+            this.drawCentered("Flappy Bird", HEIGHT / 2 - 70, "48px Arial");
+            this.drawCentered("Press SPACE to start", HEIGHT / 2 - 20, "28px Arial");
+          } else if (this.state === STATE_GAME_OVER) {
+            this.drawCentered("Game Over", HEIGHT / 2 - 80, "48px Arial");
+            this.drawCentered(`Final Score: ${this.score}`, HEIGHT / 2 - 35, "28px Arial");
+            this.drawCentered("Press SPACE to restart", HEIGHT / 2 + 10, "28px Arial");
+          }
+        }
+
+        drawCentered(text, y, font = "28px Arial") {
+          ctx.font = font;
+          const metrics = ctx.measureText(text);
+          ctx.fillText(text, (WIDTH - metrics.width) / 2, y);
+        }
+      }
+
+      const game = new Game();
+
+      window.addEventListener("keydown", (event) => {
+        if (event.code === "Space") {
+          event.preventDefault();
+          game.onSpace();
+        }
+      });
+
+      let accumulator = 0;
+      let last = performance.now();
+
+      function frame(now) {
+        const delta = now - last;
+        last = now;
+        accumulator += delta;
+
+        while (accumulator >= FRAME_TIME) {
+          game.update(FRAME_TIME);
+          accumulator -= FRAME_TIME;
+        }
+
+        game.draw(ctx);
+        requestAnimationFrame(frame);
+      }
+
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

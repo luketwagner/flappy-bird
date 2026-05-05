@@ -1,6 +1,8 @@
-# Flappy Bird Clone (Pygame)
+# Flappy Bird Clone
 
-A complete Flappy Bird clone using Python and Pygame with start, playing, and game-over states.
+This project now includes:
+- A browser version (`index.html`) using HTML5 Canvas + JavaScript
+- A desktop version (`flappy_bird.py`) using Python + Pygame
 
 ## Requirements
 
@@ -16,7 +18,17 @@ A complete Flappy Bird clone using Python and Pygame with start, playing, and ga
 pip install -r requirements.txt
 ```
 
-## Run
+## Run In Browser (Recommended)
+
+Open `index.html` directly in your browser, or serve the folder locally:
+
+```bash
+python -m http.server 8000
+```
+
+Then visit `http://localhost:8000`.
+
+## Run Desktop Version (Pygame)
 
 ```bash
 python flappy_bird.py
@@ -37,6 +49,4 @@ python flappy_bird.py
 
 ## Vercel Note
 
-- This repository now includes `api/index.py` as a minimal Python entrypoint so Vercel can import/deploy it.
-- It also includes `main.py` and `vercel.json` to make entrypoint detection explicit.
-- The actual game is still a desktop Pygame app and should be played locally with `python flappy_bird.py`.
+- Vercel deploys the browser game from `index.html` as a static site.
