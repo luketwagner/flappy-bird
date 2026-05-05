@@ -34,3 +34,8 @@ python flappy_bird.py
 
 - Avoid pipes and the ground.
 - Score increases by 1 each time you pass a pipe.
+
+## Vercel Note
+
+- This repository now includes `api/index.py` as a minimal Python entrypoint so Vercel can import/deploy it.
+- The actual game is still a desktop Pygame app and should be played locally with `python flappy_bird.py`.
